@@ -229,7 +229,7 @@ mcp_server.py         # MCP tools: route_request, verify_tool_call, calibration_
   report.py           # accuracy by bin, curves, cost
   label.py            # attach human feedback to the log
 /questions
-  v5.yaml             # criteria versioned with the code
+  v6.yaml             # criteria versioned with the code
 /agents
   AGENTS.md.snippet   # copy-paste consumer instructions for other repos' AGENTS.md
 /tests
