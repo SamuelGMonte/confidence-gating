@@ -45,6 +45,7 @@ own threshold. A global threshold would hide that. The vocabulary is closed
 names, and free-form callers are normalized (`Support/EN` → `support/en`) or collapse
 to `default` with `slice_mapped: true` in the response, so a caller can never
 fragment calibration by inventing names. Add a name only when it has ~20+ labeled rows.
+Consumer repos get a copy-paste starting point in `agents/AGENTS.md.snippet`.
 
 **Confidence comes from Jev, travels through the log.** Each `route` (`choice`) answer carries
 `confidence` (0–1, distribution concentration). `router.py` logs it; human labeling
