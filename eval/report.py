@@ -17,8 +17,12 @@ COSTS = {
     "llm": (2.0, 2.0),
     "approve_transfer": (5000.0, 5.0),
     "human": (0.0, 5.0),
+    # dev attempts are cheap (a wrong suggestion is discarded, not executed)
+    "dev/code": (0.2, 1.0),
+    "dev/llm": (0.2, 1.0),
 }
-MAX_ERROR = {"approve_transfer": 0.02, "code": 0.08, "billing_lookup": 0.08}
+MAX_ERROR = {"approve_transfer": 0.02, "code": 0.08, "billing_lookup": 0.08,
+             "dev/code": 0.30, "dev/llm": 0.30}
 
 
 def main():

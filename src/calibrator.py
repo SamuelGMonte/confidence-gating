@@ -60,8 +60,9 @@ def coverage_curve(rows: list[dict], thresholds: list[float] | None = None) -> l
 def calibrate_all(decisions: list[dict], costs: dict, max_error: dict | None = None) -> dict:
     """Groups by (slice, action) and suggests the cost-minimizing threshold.
 
-    costs: {action: (c_error, c_review)} — fallback (5, 1).
-    max_error: {action: error_cap} — e.g. approve_transfer: 0.02.
+    costs: {action: (c_error, c_review)} with optional {"slice/action": ...}
+    overrides — fallback (5, 1).
+    max_error: {action: error_cap} with optional {"slice/action": ...} overrides.
     """
     max_error = max_error or {}
     rows = _rows_from_decisions(decisions)
@@ -71,8 +72,8 @@ def calibrate_all(decisions: list[dict], costs: dict, max_error: dict | None = N
 
     report = {}
     for (sl, act), g in sorted(groups.items()):
-        c_err, c_rev = costs.get(act, (5.0, 1.0))
-        cap = max_error.get(act)
+        c_err, c_rev = costs.get(f"{sl}/{act}", costs.get(act, (5.0, 1.0)))
+        cap = max_error.get(f"{sl}/{act}", max_error.get(act))
         best = cost_model.suggest_threshold(g, c_err, c_rev, cap)
         report[f"{sl}/{act}"] = {
             "n": len(g),

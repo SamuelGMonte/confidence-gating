@@ -41,6 +41,20 @@ def test_verifier_mapping():
         jev_client.evaluate = orig
 
 
+def test_below_floor_cost_aware():
+    # default slice: error expensive -> human
+    d = policy.decide({"route": {"choice": "code", "confidence": 0.40}})
+    assert d.decision == "human" and d.reason == "below_floor", d
+    # dev slice: attempt cheap -> llm even at 0.29
+    d = policy.decide({"route": {"choice": "code", "confidence": 0.29}},
+                      slice_name="dev")
+    assert d.decision == "llm" and d.reason == "below_floor_cheap_attempt", d
+    # dev slice, sensitive action: still human below floor
+    d = policy.decide({"route": {"choice": "approve_transfer", "confidence": 0.29}},
+                      slice_name="dev")
+    assert d.decision == "human", d
+
+
 def test_calibrator_suggest():
     rows = [{"confidence": c, "correct": ok}
             for c, ok in [(0.9, True), (0.85, True), (0.6, False), (0.55, False)]]
@@ -51,6 +65,7 @@ def test_calibrator_suggest():
 if __name__ == "__main__":
     test_slice_allowlist()
     test_policy_basics()
+    test_below_floor_cost_aware()
     test_verifier_mapping()
     test_calibrator_suggest()
     print("SMOKE PASS")

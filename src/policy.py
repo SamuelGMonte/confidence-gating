@@ -7,6 +7,8 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 
+from src.cost_model import costs_for, should_automate
+
 # Initial thresholds (starting point — the calibrator adjusts them later).
 # Read-only tolerates errors; irreversible always requires confirmation.
 ACTION_POLICY = {
@@ -65,13 +67,21 @@ def decide(answers: dict, slice_name: str = "default", action_override: str | No
     if route is None or not (0.0 <= conf <= 1.0):
         return Decision("human", route, conf, 1.0, "invalid_response")
 
+    cfg = ACTION_POLICY.get(route, ACTION_POLICY["code"])
+
     if conf < FLOOR:
+        # Cost-aware fallback, not a hardcoded human: attempting is correct
+        # when an error is cheaper than a review (e.g. dev suggestions).
+        c_err, c_rev = costs_for(slice_name, route,
+                                 (cfg["c_error"], cfg["c_review"]))
+        if should_automate(conf, c_err, c_rev):
+            return Decision("llm", route, conf, FLOOR, "below_floor_cheap_attempt",
+                            {"c_error": c_err, "c_review": c_rev})
         return Decision("human", route, conf, FLOOR, "below_floor")
 
     if route in ("human", "other"):
         return Decision("human", route, conf, 1.0, "human_or_other_route")
 
-    cfg = ACTION_POLICY.get(route, ACTION_POLICY["code"])
     thr = cfg["threshold"]
     if thresholds and f"{slice_name}/{route}" in thresholds:
         thr = float(thresholds[f"{slice_name}/{route}"])

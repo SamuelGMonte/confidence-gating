@@ -21,6 +21,21 @@ def total_cost(n_auto: int, n_errors: int, n_review: int, c_error: float, c_revi
     return n_errors * c_error + n_review * c_review
 
 
+# Per-(slice, action) cost overrides. Dev attempts are cheap because a wrong
+# suggestion is reversible (the user discards the diff); billing errors are not.
+# Lookup: costs.get((slice, action)) -> (c_error, c_review), else action default.
+SLICE_COSTS: dict[tuple[str, str], tuple[float, float]] = {
+    ("dev", "code"): (0.2, 1.0),
+    ("dev", "llm"): (0.2, 1.0),
+    ("dev", "human"): (0.0, 1.0),
+}
+
+
+def costs_for(slice_name: str, action: str, default: tuple[float, float]) -> tuple[float, float]:
+    """Slice override if present, else the action default from ACTION_POLICY."""
+    return SLICE_COSTS.get((slice_name, action), default)
+
+
 def suggest_threshold(
     rows: list[dict],
     c_error: float,

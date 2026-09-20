@@ -15,11 +15,12 @@ KNOWN_SLICES = frozenset({
     "billing",
     "support/en",
     "support/pt",
+    "dev",
 })
 
 # Machine-enforced enum for tool/API schemas (MCP + HTTP). Agents see only
 # these values in the parameter description — no AGENTS.md discipline needed.
-Slice = Literal["default", "billing", "support/en", "support/pt"]
+Slice = Literal["default", "billing", "support/en", "support/pt", "dev"]
 
 
 def normalize_slice(raw: str | None) -> tuple[str, bool]:

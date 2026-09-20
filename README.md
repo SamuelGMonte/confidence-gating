@@ -73,11 +73,12 @@ reads it, the controller only moves *thresholds* (toward its own `target_error`)
 report says `cap_unmet`, no threshold meets your cap: collect more labels, raise the cap,
 or automate less. Thresholds are tactics (the system may move them); the cap is policy.
 
-**`policy.py` runs on every decision, forever.** Calibration never replaces it — it only
-retunes its numbers. Round one compares against the `ACTION_POLICY` defaults; later rounds
-compare against calibrated values (applied by hand or via the controller with
-`ADAPTIVE_THRESHOLDS=1`). A threshold is only valid for the `(model_id, question_version)`
-pair that produced it.
+**Below-floor is cost-aware, not a hardcoded `human`.** When confidence falls under
+`FLOOR` (0.60), the policy checks `(1 - conf) * C_error < C_review` with that
+slice/action's costs (`cost_model.SLICE_COSTS`, else `ACTION_POLICY`). Cheap,
+reversible attempts — e.g. slice `dev`, where a wrong suggestion is discarded, not
+executed — fall through to `llm` (`below_floor_cheap_attempt`) even at 0.29.
+Expensive ones stay `human`. The floor is a trigger for the cost check, not a verdict.
 
 ## 3. Architecture
 
