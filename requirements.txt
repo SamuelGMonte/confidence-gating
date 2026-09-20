@@ -1,0 +1,6 @@
+httpx>=0.27          # Jev API client
+pyyaml>=6            # future: loading questions/*.yaml in eval
+python-dotenv>=1.0   # auto-load .env (no `source .env` needed)
+fastapi>=0.115       # HTTP API (server.py)
+uvicorn>=0.30        # HTTP server runner
+mcp>=2.0             # MCP server (mcp_server.py), v2 API (MCPServer)

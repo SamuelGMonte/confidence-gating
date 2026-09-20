@@ -1,0 +1,25 @@
+# confidence-gating — consumer instructions (copy into your repo's AGENTS.md)
+
+## Routing (before answering ambiguous requests)
+
+Call `confidence-gating_route_request` first. It returns `source`:
+
+- `jev_router` → run the deterministic handler named in `route`; do not call the LLM.
+- `llm` → answer with the LLM.
+- `confirm` → ask the user to confirm before acting (never auto-execute).
+- `human` / `llm_fallback` → hand to a human queue; explain why in one line.
+
+Pick `slice` from the tool's allowed values by topic/language
+(`billing` = money, `support/en` / `support/pt` = support tickets,
+`default` = everything else). The parameter is an enum — other values are rejected.
+
+## Tool firewall (before any side-effecting tool call)
+
+Call `confidence-gating_verify_tool_call` with the user request and the proposed call:
+
+- `pass` → execute.
+- `confirm` → ask the user first.
+- `block` → refuse and state the reason from the response.
+- `human` → escalate; the checker itself is down.
+
+Never skip the firewall for refunds, deletes, publishes, payments, or permission changes.

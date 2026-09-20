@@ -1,0 +1,15 @@
+# secrets — never commit
+.env
+
+# local env
+.venv/
+
+# runtime data (local calibration, per-machine)
+logs/
+*.jsonl
+
+# python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/

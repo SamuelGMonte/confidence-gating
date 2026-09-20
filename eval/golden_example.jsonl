@@ -1,0 +1,6 @@
+{"state": {"request": "where do I find my second invoice copy?"}, "expected_route": "code", "slice": "billing", "notes": "simple lookup"}
+{"state": {"request": "I want a refund for yesterday's double charge"}, "expected_route": "code", "slice": "billing", "notes": "lookup + rule"}
+{"state": {"request": "approve a 50k transfer to a new vendor"}, "expected_route": "human", "slice": "billing", "notes": "irreversible, always human/confirm"}
+{"state": {"request": "intermittent race condition in checkout under load"}, "expected_route": "llm", "slice": "technical", "notes": "open-ended text"}
+{"state": {"request": "update the local db connection string in .env"}, "expected_route": "code", "slice": "technical", "notes": "deterministic procedure"}
+{"state": {"request": "asdf qwerty nonsense with no meaning"}, "expected_route": "human", "slice": "technical", "notes": "unroutable -> other/human"}

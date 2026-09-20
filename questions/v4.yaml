@@ -1,0 +1,18 @@
+# Versioned question set — v4. Change the version together with the code, never live.
+route:
+  type: choice
+  instructions: "Which handler fits this request? Choose by capability, not vendor."
+  criteria:
+    code: "Lookup, local config, or deterministic procedure with no text generation"
+    llm: "Open question, troubleshooting, or text that must be written"
+    human: "Ambiguous, irreversible, or out of scope"
+complexity:
+  type: score
+  instructions: "How hard is this to solve without a generative model?"
+  criteria:
+    - "One known step, no judgment"
+    - "Multiple steps, but still routable by code"
+    - "Edge case; needs reasoning or writing"
+irreversible:
+  type: noul
+  instructions: "Does this request cause an irreversible or sensitive effect (moving money, deleting, publishing, changing security)?"
