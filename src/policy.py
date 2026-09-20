@@ -22,6 +22,9 @@ ACTION_POLICY = {
 FLOOR = 0.60  # below this: nobody automates, goes to human
 IRREVERSIBLE_NOUL_CUT = 0.70  # P(irreversible=yes) above this -> confirm/human
 DEV_TASK_CUT = 0.70  # P(dev_task=yes) above this -> llm (attempt), any slice
+# Jev scores are 0-indexed (3-level rubric -> 0,1,2): 2.0 = top level.
+DEV_SCOPE_CUT = 2.0  # scope at/above this + confident -> confirm, even for dev
+DEV_SCOPE_CONF = 0.60  # minimum confidence to act on the scope score
 
 
 @dataclass
@@ -60,6 +63,20 @@ def _noul_prob(answers: dict, key: str) -> float | None:
     return None
 
 
+def _score(answers: dict, key: str) -> tuple[float | None, float]:
+    """Returns (score, confidence) for a score question; (None, 0.0) if absent."""
+    item = answers.get(key) or {}
+    try:
+        score = float(item["score"]) if item.get("score") is not None else None
+    except (TypeError, ValueError):
+        score = None
+    try:
+        conf = float(item.get("confidence") or 0.0)
+    except (TypeError, ValueError):
+        conf = 0.0
+    return score, max(0.0, min(1.0, conf))
+
+
 def decide(answers: dict, slice_name: str = "default", action_override: str | None = None,
            thresholds: dict | None = None) -> Decision:
     route, conf, raw = _choice(answers, "route")
@@ -83,8 +100,15 @@ def decide(answers: dict, slice_name: str = "default", action_override: str | No
     # Dev-task override: a coding task the agent can attempt goes to llm
     # regardless of slice or route confidence — attempting is cheap and
     # reversible. Never returns auto (nothing executes without the verifier).
+    # Exception: huge blast radius (whole codebase) goes to confirm first.
     p_dev = _noul_prob(answers, "dev_task")
     if p_dev is not None and p_dev >= DEV_TASK_CUT:
+        scope, scope_conf = _score(answers, "scope")
+        if (scope is not None and scope >= DEV_SCOPE_CUT
+                and scope_conf >= DEV_SCOPE_CONF):
+            return Decision("confirm", route, conf, cfg["threshold"],
+                            f"dev_big_scope={scope:.1f}",
+                            {"p_dev_task": p_dev, "scope": scope})
         return Decision("llm", route, conf, cfg["threshold"],
                         f"dev_task_p={p_dev:.2f}", {"p_dev_task": p_dev})
 

@@ -6,7 +6,7 @@ from src import jev_client, log, policy
 from src.controller import ThresholdController
 from src.slices import normalize_slice
 
-QUESTION_VERSION = "v5"
+QUESTION_VERSION = "v6"
 
 QUESTIONS = {
     "route": {
@@ -25,6 +25,15 @@ QUESTIONS = {
     "dev_task": {
         "type": "noul",
         "instructions": "Is this a coding/build/fix task an AI coding agent can attempt (write or edit code, fix UI, refactor, debug)?",
+    },
+    "scope": {
+        "type": "score",
+        "instructions": "How large is the blast radius of attempting this task?",
+        "criteria": [
+            "Single file or snippet",
+            "Multiple files in a bounded area",
+            "Whole codebase, migration, or production-wide change",
+        ],
     },
 }
 

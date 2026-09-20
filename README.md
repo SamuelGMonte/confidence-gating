@@ -88,6 +88,10 @@ question scores whether the request is something an AI coding agent can attempt.
 confidence or a wrong slice — because attempting is cheap and reversible. Safety still
 comes first: a high `irreversible` score forces `confirm`/`human` before the dev check.
 The override never returns `auto`; execution still goes through the verifier.
+Cost logic survives inside dev: the `scope` (`score`, 0-indexed) question measures blast
+radius, and a confident top-level score (`>= 2.0`, whole codebase/migration) turns the
+verdict into `confirm` (`dev_big_scope`) — a full refactor asks a human first, a file fix
+just proceeds.
 
 ## 3. Architecture
 
@@ -122,7 +126,7 @@ Each decision saves one JSONL line:
   "ts": "2026-09-20T12:00:00Z",
   "state_hash": "sha256:...",
   "state_snapshot": {"request": "...", "tenant": "...", "permissions": [...]},
-  "question_version": "v5",
+  "question_version": "v6",
   "model": "jev-1.13.0",
   "answers": {
     "route": {"choice": "billing", "probabilities": {"billing": 0.82, "...": 0.1}, "confidence": 0.78},
@@ -188,7 +192,7 @@ QUESTIONS = {
 Rules:
 1. `choice` = closed set with an `other` escape hatch; `score` = ordered rubric (2–10 levels); `noul` = yes/no probability.
 2. One question per independent fact — questions in one call can't see each other's answers. Dependent step? Make two calls.
-3. New set = new version: copy `questions/v5.yaml` → `v6.yaml`, point `QUESTION_VERSION` at it, and **recalibrate from zero** — thresholds from the old set mean nothing on the new one.
+3. New set = new version: copy `questions/v6.yaml` → `v6.yaml`, point `QUESTION_VERSION` at it, and **recalibrate from zero** — thresholds from the old set mean nothing on the new one.
 4. Keep the `irreversible`-style safety question in every set. Jev scores; `policy.py` still authorizes.
 
 ## 6. Optimization (online later)
@@ -311,6 +315,6 @@ Troubleshooting:
 
 - `jev_unavailable:http_401` → bad/missing key — check `.env`.
 - `jev_unavailable:http_429/529` → rate limit/overload; the router retries twice, then falls back to `llm_fallback`/`human` — never `auto`.
-- Everything routes to `human` with low confidence → `questions/v5.yaml` criteria are too generic for your domain; label ~50 cases (`make pending`, then `eval/label.py`) and check `make report` bins before lowering thresholds.
+- Everything routes to `human` with low confidence → `questions/v6.yaml` criteria are too generic for your domain; label ~50 cases (`make pending`, then `eval/label.py`) and check `make report` bins before lowering thresholds.
 
 References: [Confidence](https://docs.typesafe.ai/confidence) · [Confidence-Gated Routing](https://docs.typesafe.ai/patterns/confidence-routing) · [Models / pinning](https://docs.typesafe.ai/models) · Launch: TypeSafe AI System One + Jev (09/15/2026).

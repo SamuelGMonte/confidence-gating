@@ -38,6 +38,18 @@ def test_dev_task_override():
                        "dev_task": {"noul": 0.1}},
                       slice_name="support/pt")
     assert d.decision == "human", d
+    # dev task with whole-codebase scope (0-indexed: 2.0 = top) -> confirm
+    d = policy.decide({"route": {"choice": "code", "confidence": 0.26},
+                       "dev_task": {"noul": 0.9},
+                       "scope": {"score": 2.0, "confidence": 0.85}},
+                      slice_name="dev")
+    assert d.decision == "confirm" and d.reason.startswith("dev_big_scope"), d
+    # dev task, small scope, low confidence -> llm attempt
+    d = policy.decide({"route": {"choice": "code", "confidence": 0.26},
+                       "dev_task": {"noul": 0.9},
+                       "scope": {"score": 1.0, "confidence": 0.85}},
+                      slice_name="dev")
+    assert d.decision == "llm", d
 
 
 def test_noul_live_shape():
