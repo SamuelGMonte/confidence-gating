@@ -30,68 +30,25 @@ Jev `confidence` (`choice`/`score`) = concentration of the distribution. Useful 
 
 ## 2. Business logic (who decides what)
 
-**Sensitive is defined in code, never by Jev.** Two mechanisms, both in `src/policy.py`:
+Jev scores, code authorizes. Every rule below is a constant you can change:
 
-- `ACTION_POLICY[action]["confirm_always"]` — the hand-written list of sensitive actions
-(`approve_transfer`, `human`). Even at 0.97 confidence these yield at most `confirm`, never `auto`.
-- `IRREVERSIBLE_NOUL_CUT = 0.70` — the code-owned cutoff. Jev's only role is scoring the
-specific case via the `irreversible` (`noul`) question; if `P(yes) ≥ 0.70`, the policy
-forces `confirm`/`human`. Confidence is never authorization.
-
-**Slice = the segment you calibrate separately** (e.g. `billing` vs `technical`, a language,
-a tenant), passed as `route(prompt, slice_name=...)` and stored in the log's `slice` field.
-Accuracy-at-a-given-confidence differs per segment, so each `(slice, action)` pair gets its
-own threshold. A global threshold would hide that. The vocabulary is closed
-(`src/slices.py::KNOWN_SLICES` + `Slice` enum, currently
-`default, billing, support/en, support/pt, dev`): MCP/HTTP schemas only offer the known
-names, and free-form callers are normalized (`Support/EN` → `support/en`) or collapse
-to `default` with `slice_mapped: true` in the response, so a caller can never
-fragment calibration by inventing names. Add a name only when it has ~20+ labeled rows.
-Consumer repos get a copy-paste starting point in `agents/AGENTS.md.snippet`.
-
-**Confidence comes from Jev, travels through the log.** Each `route` (`choice`) answer carries
-`confidence` (0–1, distribution concentration). `router.py` logs it; human labeling
-(`eval/label.py`) pairs it with `outcome.correct`. Every labeled row is therefore a
-`(confidence, correct)` pair — the raw material for calibration.
-
-**The scan: every candidate threshold** `t` **is tested.** `cost_model.suggest_threshold()` tries
-`0.50, 0.51, … 0.97`. For each `t`, over the labeled rows of that slice/action:
-
-```
-auto   = rows with confidence >= t      (the rest go to review)
-errors = auto rows labeled correct=false
-cost(t)  = errors * C_error + len(review) * C_review
-error(t) = errors / len(auto)
-```
-
-Candidates breaching the error cap are discarded; the cheapest survivor wins. Small `t` =
-automate almost everything (high coverage, many errors); large `t` = automate little
-(few errors, much review cost). The winner becomes the suggested `threshold`.
-
-**The cap (**`MAX_ERROR`**) is policy, set only by humans.** It lives in `eval/report.py`
-(e.g. `approve_transfer: 0.02`, `code: 0.08`) and declares how much automated error the
-business tolerates per action. Nothing in the system writes to it — the calibrator only
-reads it, the controller only moves *thresholds* (toward its own `target_error`). If the
-report says `cap_unmet`, no threshold meets your cap: collect more labels, raise the cap,
-or automate less. Thresholds are tactics (the system may move them); the cap is policy.
-
-**Below-floor is cost-aware, not a hardcoded** `human`**.** When confidence falls under
-`FLOOR` (0.60), the policy checks `(1 - conf) * C_error < C_review` with that
-slice/action's costs (`cost_model.SLICE_COSTS`, else `ACTION_POLICY`). Cheap,
-reversible attempts — e.g. slice `dev`, where a wrong suggestion is discarded, not
-executed — fall through to `llm` (`below_floor_cheap_attempt`) even at 0.29.
-Expensive ones stay `human`. The floor is a trigger for the cost check, not a verdict.
-
-**Coding tasks are detected by content, not just by slice.** The `dev_task` (`noul`)
-question scores whether the request is something an AI coding agent can attempt. Above
-`DEV_TASK_CUT` (0.70) the decision is `llm` (proceed) in any slice — even with low route
-confidence or a wrong slice — because attempting is cheap and reversible. Safety still
-comes first: a high `irreversible` score forces `confirm`/`human` before the dev check.
-The override never returns `auto`; execution still goes through the verifier.
-Cost logic survives inside dev: the `scope` (`score`, 0-indexed) question measures blast
-radius, and a confident top-level score (`>= 2.0`, whole codebase/migration) turns the
-verdict into `confirm` (`dev_big_scope`) — a full refactor asks a human first, a file fix
-just proceeds.
+1. **Sensitive actions never auto-execute.** `ACTION_POLICY[action]["confirm_always"]`
+   (`src/policy.py`) caps them at `confirm`, even at 0.97 confidence.
+2. **Irreversible cases escalate.** `IRREVERSIBLE_NOUL_CUT` (0.70): if Jev's `irreversible`
+   probability hits it, the verdict is `confirm`/`human`. Checked before everything else.
+3. **Coding tasks proceed, unless huge.** `DEV_TASK_CUT` (0.70) sends attemptable work to
+   `llm` in any slice; a confident top-level `scope` score (`DEV_SCOPE_CUT` = 2.0,
+   scores are 0-indexed) flips it to `confirm` — file fix proceeds, full refactor asks first.
+4. **Below-floor consults cost, not a hardcoded verdict.** Under `FLOOR` (0.60), automate
+   iff `(1 - conf) * C_error < C_review` with that slice/action's costs
+   (`cost_model.SLICE_COSTS`, else `ACTION_POLICY`). Cheap attempts fall to `llm`, expensive ones stay `human`.
+5. **Thresholds are learned per slice/action, caps are declared.** The calibrator scans
+   `t` in 0.50-0.97 over labeled `(confidence, correct)` rows and picks the cheapest `t`
+   under your `MAX_ERROR` (`eval/report.py`, human-only edits). Thresholds move (by hand or
+   controller); caps don't.
+6. **Slices are a closed vocabulary** (`src/slices.py::KNOWN_SLICES`, mirrored in the
+   `Slice` enum for MCP/HTTP). Unknown names collapse to `default`. Add a name only with
+   ~20+ labeled rows behind it. Consumer starter: `agents/AGENTS.md.snippet`.
 
 ## 3. Architecture
 
