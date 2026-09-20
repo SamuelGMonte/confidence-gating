@@ -45,8 +45,9 @@ def _choice(answers: dict, key: str) -> tuple[str | None, float, dict]:
 
 def _noul_prob(answers: dict, key: str) -> float | None:
     item = answers.get(key) or {}
-    # Jev noul returns the yes-probability under varying fields; cover the common ones
-    for k in ("prob_yes", "probability", "prob", "p_yes", "score"):
+    # Jev noul returns the yes-probability under varying fields; cover the common ones.
+    # Live shape (jev-1.13.0): {"type": "noul", "noul": 0.46}
+    for k in ("noul", "prob_yes", "probability", "prob", "p_yes", "score"):
         if item.get(k) is not None:
             try:
                 return max(0.0, min(1.0, float(item[k])))

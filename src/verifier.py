@@ -40,6 +40,10 @@ QUESTIONS = {
 BLOCK_CUT = 0.80
 CONFIRM_CUT = 0.55
 
+# Questions where yes is GOOD news: problem probability is 1 - p.
+# (injection/sensitive/irreversible: yes is bad news, used as-is)
+INVERTED = {"tool_match"}
+
 
 def _p(answers: dict, key: str) -> float | None:
     return policy._noul_prob(answers, key)
@@ -61,14 +65,15 @@ def verify(state: dict, model: str | None = None) -> dict:
     if not present:
         return {"verdict": "human", "scores": scores, "reason": "no_verifier_signal"}
 
-    worst_key = max(present, key=lambda k: present[k])
-    worst = present[worst_key]
+    risk = {k: (1.0 - v if k in INVERTED else v) for k, v in present.items()}
+    worst_key = max(risk, key=lambda k: risk[k])
+    worst = risk[worst_key]
     if worst >= BLOCK_CUT:
         return {"verdict": "block", "scores": scores,
-                "reason": f"{worst_key}_p={worst:.2f}>=block"}
+                "reason": f"{worst_key}_risk={worst:.2f}>=block"}
     if worst >= CONFIRM_CUT:
         return {"verdict": "confirm", "scores": scores,
-                "reason": f"{worst_key}_p={worst:.2f}>=confirm"}
+                "reason": f"{worst_key}_risk={worst:.2f}>=confirm"}
     return {"verdict": "pass", "scores": scores, "reason": "low_signals"}
 
 

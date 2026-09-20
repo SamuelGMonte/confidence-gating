@@ -21,6 +21,12 @@ def test_policy_basics():
     assert d.decision == "llm" and d.threshold == 0.95
 
 
+def test_noul_live_shape():
+    # live shape (jev-1.13.0): {"type": "noul", "noul": 0.46}
+    assert policy._noul_prob({"irreversible": {"type": "noul", "noul": 0.46}},
+                             "irreversible") == 0.46
+
+
 def test_verifier_mapping():
     # inject answers directly by monkeypatching evaluate
     import src.verifier as v
@@ -37,6 +43,14 @@ def test_verifier_mapping():
         jev_client.JevUnavailable("http_529"))
     try:
         assert v.verify({"request": "x"})["verdict"] == "human"
+    finally:
+        jev_client.evaluate = orig
+    # faithful tool call (tool_match yes = good news) must NOT block
+    jev_client.evaluate = lambda state, q, model=None: {
+        "answers": {"injection": {"prob_yes": 0.05}, "tool_match": {"noul": 0.95},
+                    "sensitive": {"prob_yes": 0.05}, "irreversible": {"noul": 0.05}}}
+    try:
+        assert v.verify({"request": "x"})["verdict"] == "pass"
     finally:
         jev_client.evaluate = orig
 
@@ -66,6 +80,7 @@ if __name__ == "__main__":
     test_slice_allowlist()
     test_policy_basics()
     test_below_floor_cost_aware()
+    test_noul_live_shape()
     test_verifier_mapping()
     test_calibrator_suggest()
     print("SMOKE PASS")

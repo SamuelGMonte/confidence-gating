@@ -31,11 +31,12 @@ Jev `confidence` (`choice`/`score`) = concentration of the distribution. Useful 
 ## 2. Business logic (who decides what)
 
 **Sensitive is defined in code, never by Jev.** Two mechanisms, both in `src/policy.py`:
+
 - `ACTION_POLICY[action]["confirm_always"]` — the hand-written list of sensitive actions
-  (`approve_transfer`, `human`). Even at 0.97 confidence these yield at most `confirm`, never `auto`.
+(`approve_transfer`, `human`). Even at 0.97 confidence these yield at most `confirm`, never `auto`.
 - `IRREVERSIBLE_NOUL_CUT = 0.70` — the code-owned cutoff. Jev's only role is scoring the
-  specific case via the `irreversible` (`noul`) question; if `P(yes) ≥ 0.70`, the policy
-  forces `confirm`/`human`. Confidence is never authorization.
+specific case via the `irreversible` (`noul`) question; if `P(yes) ≥ 0.70`, the policy
+forces `confirm`/`human`. Confidence is never authorization.
 
 **Slice = the segment you calibrate separately** (e.g. `billing` vs `technical`, a language,
 a tenant), passed as `route(prompt, slice_name=...)` and stored in the log's `slice` field.
@@ -53,7 +54,7 @@ Consumer repos get a copy-paste starting point in `agents/AGENTS.md.snippet`.
 (`eval/label.py`) pairs it with `outcome.correct`. Every labeled row is therefore a
 `(confidence, correct)` pair — the raw material for calibration.
 
-**The scan: every candidate threshold `t` is tested.** `cost_model.suggest_threshold()` tries
+**The scan: every candidate threshold** `t` **is tested.** `cost_model.suggest_threshold()` tries
 `0.50, 0.51, … 0.97`. For each `t`, over the labeled rows of that slice/action:
 
 ```
@@ -67,14 +68,14 @@ Candidates breaching the error cap are discarded; the cheapest survivor wins. Sm
 automate almost everything (high coverage, many errors); large `t` = automate little
 (few errors, much review cost). The winner becomes the suggested `threshold`.
 
-**The cap (`MAX_ERROR`) is policy, set only by humans.** It lives in `eval/report.py`
+**The cap (**`MAX_ERROR`**) is policy, set only by humans.** It lives in `eval/report.py`
 (e.g. `approve_transfer: 0.02`, `code: 0.08`) and declares how much automated error the
 business tolerates per action. Nothing in the system writes to it — the calibrator only
 reads it, the controller only moves *thresholds* (toward its own `target_error`). If the
 report says `cap_unmet`, no threshold meets your cap: collect more labels, raise the cap,
 or automate less. Thresholds are tactics (the system may move them); the cap is policy.
 
-**Below-floor is cost-aware, not a hardcoded `human`.** When confidence falls under
+**Below-floor is cost-aware, not a hardcoded** `human`**.** When confidence falls under
 `FLOOR` (0.60), the policy checks `(1 - conf) * C_error < C_review` with that
 slice/action's costs (`cost_model.SLICE_COSTS`, else `ACTION_POLICY`). Cheap,
 reversible attempts — e.g. slice `dev`, where a wrong suggestion is discarded, not
@@ -206,6 +207,7 @@ CONFIDENCE_GATING.md  # reference for the previous static pattern
 - Don't ask a single generic `is this safe?` question. Check per boundary: input, tool_call, output, citation.
 - Don't chain dependent decisions in one call — questions in the same request are independent and parallel. If step 2 depends on step 1, make 2 calls.
 - Don't return the classification as the solution.
+
 
 
 ## 9. Quickstart
