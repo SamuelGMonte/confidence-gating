@@ -6,7 +6,7 @@ from src import jev_client, log, policy
 from src.controller import ThresholdController
 from src.slices import normalize_slice
 
-QUESTION_VERSION = "v4"
+QUESTION_VERSION = "v5"
 
 QUESTIONS = {
     "route": {
@@ -21,6 +21,10 @@ QUESTIONS = {
     "irreversible": {
         "type": "noul",
         "instructions": "Does this request cause an irreversible or sensitive effect?",
+    },
+    "dev_task": {
+        "type": "noul",
+        "instructions": "Is this a coding/build/fix task an AI coding agent can attempt (write or edit code, fix UI, refactor, debug)?",
     },
 }
 

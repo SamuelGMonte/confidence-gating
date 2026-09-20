@@ -82,6 +82,13 @@ reversible attempts — e.g. slice `dev`, where a wrong suggestion is discarded,
 executed — fall through to `llm` (`below_floor_cheap_attempt`) even at 0.29.
 Expensive ones stay `human`. The floor is a trigger for the cost check, not a verdict.
 
+**Coding tasks are detected by content, not just by slice.** The `dev_task` (`noul`)
+question scores whether the request is something an AI coding agent can attempt. Above
+`DEV_TASK_CUT` (0.70) the decision is `llm` (proceed) in any slice — even with low route
+confidence or a wrong slice — because attempting is cheap and reversible. Safety still
+comes first: a high `irreversible` score forces `confirm`/`human` before the dev check.
+The override never returns `auto`; execution still goes through the verifier.
+
 ## 3. Architecture
 
 ```mermaid
@@ -188,7 +195,7 @@ mcp_server.py         # MCP tools: route_request, verify_tool_call, calibration_
   report.py           # accuracy by bin, curves, cost
   label.py            # attach human feedback to the log
 /questions
-  v4.yaml             # criteria versioned with the code
+  v5.yaml             # criteria versioned with the code
 /agents
   AGENTS.md.snippet   # copy-paste consumer instructions for other repos' AGENTS.md
 /tests

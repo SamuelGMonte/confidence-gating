@@ -21,6 +21,25 @@ def test_policy_basics():
     assert d.decision == "llm" and d.threshold == 0.95
 
 
+def test_dev_task_override():
+    # coding task with wrong slice + low route confidence -> llm anyway
+    d = policy.decide({"route": {"choice": "code", "confidence": 0.26},
+                       "dev_task": {"noul": 0.9}},
+                      slice_name="support/pt")
+    assert d.decision == "llm" and d.reason.startswith("dev_task_p="), d
+    # irreversible still wins over dev_task
+    d = policy.decide({"route": {"choice": "code", "confidence": 0.26},
+                       "dev_task": {"noul": 0.9},
+                       "irreversible": {"noul": 0.85}},
+                      slice_name="support/pt")
+    assert d.decision in ("confirm", "human"), d
+    # non-dev low-conf on expensive slice stays human
+    d = policy.decide({"route": {"choice": "code", "confidence": 0.26},
+                       "dev_task": {"noul": 0.1}},
+                      slice_name="support/pt")
+    assert d.decision == "human", d
+
+
 def test_noul_live_shape():
     # live shape (jev-1.13.0): {"type": "noul", "noul": 0.46}
     assert policy._noul_prob({"irreversible": {"type": "noul", "noul": 0.46}},
@@ -80,6 +99,7 @@ if __name__ == "__main__":
     test_slice_allowlist()
     test_policy_basics()
     test_below_floor_cost_aware()
+    test_dev_task_override()
     test_noul_live_shape()
     test_verifier_mapping()
     test_calibrator_suggest()

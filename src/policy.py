@@ -21,6 +21,7 @@ ACTION_POLICY = {
 
 FLOOR = 0.60  # below this: nobody automates, goes to human
 IRREVERSIBLE_NOUL_CUT = 0.70  # P(irreversible=yes) above this -> confirm/human
+DEV_TASK_CUT = 0.70  # P(dev_task=yes) above this -> llm (attempt), any slice
 
 
 @dataclass
@@ -70,6 +71,23 @@ def decide(answers: dict, slice_name: str = "default", action_override: str | No
 
     cfg = ACTION_POLICY.get(route, ACTION_POLICY["code"])
 
+    # Irreversibility lock first: safety beats everything, at any confidence.
+    p_irr = _noul_prob(answers, "irreversible")
+    if p_irr is not None and p_irr >= IRREVERSIBLE_NOUL_CUT:
+        thr_irr = cfg["threshold"]
+        if thresholds and f"{slice_name}/{route}" in thresholds:
+            thr_irr = float(thresholds[f"{slice_name}/{route}"])
+        return Decision("confirm" if conf >= thr_irr else "human", route, conf, thr_irr,
+                        f"irreversible_p={p_irr:.2f}", {"p_irreversible": p_irr})
+
+    # Dev-task override: a coding task the agent can attempt goes to llm
+    # regardless of slice or route confidence — attempting is cheap and
+    # reversible. Never returns auto (nothing executes without the verifier).
+    p_dev = _noul_prob(answers, "dev_task")
+    if p_dev is not None and p_dev >= DEV_TASK_CUT:
+        return Decision("llm", route, conf, cfg["threshold"],
+                        f"dev_task_p={p_dev:.2f}", {"p_dev_task": p_dev})
+
     if conf < FLOOR:
         # Cost-aware fallback, not a hardcoded human: attempting is correct
         # when an error is cheaper than a review (e.g. dev suggestions).
@@ -86,12 +104,6 @@ def decide(answers: dict, slice_name: str = "default", action_override: str | No
     thr = cfg["threshold"]
     if thresholds and f"{slice_name}/{route}" in thresholds:
         thr = float(thresholds[f"{slice_name}/{route}"])
-
-    # Irreversibility lock: noul takes precedence over a confident choice
-    p_irr = _noul_prob(answers, "irreversible")
-    if p_irr is not None and p_irr >= IRREVERSIBLE_NOUL_CUT:
-        return Decision("confirm" if conf >= thr else "human", route, conf, thr,
-                        f"irreversible_p={p_irr:.2f}", {"p_irreversible": p_irr})
 
     if route == "llm":
         return Decision("llm", route, conf, thr, "jev_requested_generation")

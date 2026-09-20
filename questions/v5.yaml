@@ -1,4 +1,4 @@
-# Versioned question set — v4. Change the version together with the code, never live.
+# Versioned question set — v5. Change the version together with the code, never live.
 route:
   type: choice
   instructions: "Which handler fits this request? Choose by capability, not vendor."
@@ -16,3 +16,6 @@ complexity:
 irreversible:
   type: noul
   instructions: "Does this request cause an irreversible or sensitive effect (moving money, deleting, publishing, changing security)?"
+dev_task:
+  type: noul
+  instructions: "Is this a coding/build/fix task an AI coding agent can attempt (write or edit code, fix UI, refactor, debug)?"
