@@ -161,6 +161,36 @@ threshold 0.90 -> automates 28%, errors 1.2%, cost $310 <- best for expensive ac
 
 Re-run before changing `question_version` or `model_id`. Roll out gradually, comparing `review_rate` and `error_rate`.
 
+### Bring your own question set
+
+The `route` / `irreversible` / `dev_task` questions in `src/router.py::QUESTIONS` are a
+starting point, not the product. Define what Jev analyzes according to your domain —
+customer support, programming, triage, moderation — by writing your own typed questions:
+
+```python
+QUESTIONS = {
+    "route": {  # choice: WHERE does this go? (closed set, max 255 options)
+        "type": "choice",
+        "instructions": "Which support queue owns this ticket?",
+        "criteria": {
+            "billing": "Payment, refund, or subscription issue",
+            "technical": "Bug, error, or integration issue",
+            "other": "None of the above — do not force a fit",
+        },
+    },
+    "vip": {  # noul: binary gate (no confidence field — threshold the value itself)
+        "type": "noul",
+        "instructions": "Is this customer on a VIP plan?",
+    },
+}
+```
+
+Rules:
+1. `choice` = closed set with an `other` escape hatch; `score` = ordered rubric (2–10 levels); `noul` = yes/no probability.
+2. One question per independent fact — questions in one call can't see each other's answers. Dependent step? Make two calls.
+3. New set = new version: copy `questions/v5.yaml` → `v6.yaml`, point `QUESTION_VERSION` at it, and **recalibrate from zero** — thresholds from the old set mean nothing on the new one.
+4. Keep the `irreversible`-style safety question in every set. Jev scores; `policy.py` still authorizes.
+
 ## 6. Optimization (online later)
 
 Simple controller, no RL in v1:
