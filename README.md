@@ -122,7 +122,7 @@ Each decision saves one JSONL line:
   "ts": "2026-09-20T12:00:00Z",
   "state_hash": "sha256:...",
   "state_snapshot": {"request": "...", "tenant": "...", "permissions": [...]},
-  "question_version": "v4",
+  "question_version": "v5",
   "model": "jev-1.13.0",
   "answers": {
     "route": {"choice": "billing", "probabilities": {"billing": 0.82, "...": 0.1}, "confidence": 0.78},
@@ -281,6 +281,6 @@ Troubleshooting:
 
 - `jev_unavailable:http_401` → bad/missing key — check `.env`.
 - `jev_unavailable:http_429/529` → rate limit/overload; the router retries twice, then falls back to `llm_fallback`/`human` — never `auto`.
-- Everything routes to `human` with low confidence → `questions/v4.yaml` criteria are too generic for your domain; label ~50 cases (`make pending`, then `eval/label.py`) and check `make report` bins before lowering thresholds.
+- Everything routes to `human` with low confidence → `questions/v5.yaml` criteria are too generic for your domain; label ~50 cases (`make pending`, then `eval/label.py`) and check `make report` bins before lowering thresholds.
 
 References: [Confidence](https://docs.typesafe.ai/confidence) · [Confidence-Gated Routing](https://docs.typesafe.ai/patterns/confidence-routing) · [Models / pinning](https://docs.typesafe.ai/models) · Launch: TypeSafe AI System One + Jev (09/15/2026).
