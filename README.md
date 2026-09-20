@@ -41,7 +41,8 @@ Jev `confidence` (`choice`/`score`) = concentration of the distribution. Useful 
 a tenant), passed as `route(prompt, slice_name=...)` and stored in the log's `slice` field.
 Accuracy-at-a-given-confidence differs per segment, so each `(slice, action)` pair gets its
 own threshold. A global threshold would hide that. The vocabulary is closed
-(`src/slices.py::KNOWN_SLICES` + `Slice` enum): MCP/HTTP schemas only offer the known
+(`src/slices.py::KNOWN_SLICES` + `Slice` enum, currently
+`default, billing, support/en, support/pt, dev`): MCP/HTTP schemas only offer the known
 names, and free-form callers are normalized (`Support/EN` → `support/en`) or collapse
 to `default` with `slice_mapped: true` in the response, so a caller can never
 fragment calibration by inventing names. Add a name only when it has ~20+ labeled rows.
